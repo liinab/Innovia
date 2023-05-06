@@ -1,0 +1,154 @@
+# Before executing this code you probably need to run the following scripts in the terminal:
+# pip install pandas
+# pip install numpy
+# pip install scikit-learn
+# pip install tabulate
+# pip install matplotlib
+
+
+# First we import all the necessary libraries
+import pandas as pd
+import numpy as np
+from tabulate import tabulate
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+
+
+# Then load the dataset
+# This depends on where the dataset is located on your computer
+data = pd.read_csv(r'C:\Users\insert_username\location\jobtech_dataset2022.csv')
+
+
+# This line defines the keywords we want to add to a filter
+keywords = ['Java', 'Python', 'C#', 'C\+\+', 'Javascript', 'HTML', 'SQL']
+
+
+# Combining the keywords into a single search pattern
+pattern = '|'.join(keywords)
+
+
+# Here we define unwanted keywords that we don't want to have in the headlines
+unwanted_keywords = ['lärare', 'skol', 'rektor', 'jurist','vikari']
+
+
+# Combining the unwanted keywords into a single search pattern
+unwanted_pattern = '|'.join(unwanted_keywords)
+
+
+# This filters out the rows containing any of the unwanted keywords in the 'headline' column
+filtered_data = data[~data['headline'].str.contains(unwanted_pattern, na=False, case=False, regex=True)]
+
+
+# And this filters "in" rows that we want that contains any of the specified keywords in the 'description' column
+filtered_rows = filtered_data[filtered_data['description'].str.contains(pattern, na=False, case=False, regex=True)]
+
+
+# This displays the 'headline' column for the filtered rows in a nicely formatted table
+print(tabulate(filtered_rows[['headline']], headers='keys', tablefmt='pretty'))
+
+
+# Initialize an empty dictionary to store the filtered DataFrames
+filtered_dataframes = {}
+
+
+# Loop through each keyword and filter the rows accordingly
+for keyword in keywords:
+    filtered_rows = filtered_data[filtered_data['description'].str.contains(keyword, na=False, case=False, regex=True)]
+    filtered_dataframes[keyword] = filtered_rows
+
+
+# Display the 'headline' column for each filtered DataFrame in a nicely formatted table
+for keyword, df in filtered_dataframes.items():
+    print(f"\nHeadlines for rows containing '{keyword}' in the 'description' column:")
+    print(tabulate(df[['headline']], headers='keys', tablefmt='pretty'))
+
+
+# Calculates the number of rows each keyword gathered and store it in a list
+summary_list = [(keyword, len(df)) for keyword, df in filtered_dataframes.items()]
+
+
+# Sorts the summary list in descending order based on the number of rows
+sorted_summary = sorted(summary_list, key=lambda x: x[1], reverse=True)
+
+
+# Displays the sorted summary of the number of rows each keyword gathered
+print("\nSummary of the number of rows each keyword gathered (sorted by descending count):")
+for keyword, count in sorted_summary:
+    print(f"{keyword}: {count} rows")
+
+
+# Prepares the data for clustering (reshaping the counts into a 2D array)
+counts = np.array([count for keyword, count in sorted_summary]).reshape(-1, 1)
+
+
+# The number of clusters
+num_clusters = 7
+
+
+# Perform K-means clustering
+kmeans = KMeans(n_clusters=num_clusters, random_state=0).fit(counts)
+
+
+# This assigns the cluster labels to each keyword, as well as changes C++ to correct spelling
+clustered_keywords = [(keyword.replace("C\\+\\+", "C++"), count, kmeans.labels_[i]) for i, (keyword, count) in enumerate(sorted_summary)]
+
+
+# Display the keywords and their corresponding clusters
+print("\nKeywords and their corresponding clusters:")
+for keyword, count, cluster in clustered_keywords:
+    print(f"{keyword}: {count} rows -> Cluster {cluster + 1}")
+
+
+# Create a dictionary to store keywords by cluster
+clustered_keywords_dict = {i: [] for i in range(num_clusters)}
+
+
+# Assign keywords to their corresponding clusters
+for keyword, count, cluster in clustered_keywords:
+    clustered_keywords_dict[cluster].append(keyword)
+
+
+# Displays the keywords for each cluster
+print("\nKeywords grouped by clusters:")
+for cluster, keywords in clustered_keywords_dict.items():
+    print(f"Cluster {cluster + 1}: {', '.join(keywords)}")
+
+
+# Here the visualization code starts
+# This creates a bar chart for the keywords and their corresponding clusters
+fig, ax = plt.subplots(figsize=(12, 10))  # <-- Width and height of the pop-up window
+
+
+# Sorts the clustered_keywords_dict based on the total count of rows for each cluster
+sorted_clustered_keywords_dict = dict(sorted(
+    clustered_keywords_dict.items(),
+    key=lambda kv: sum([count for keyword, count, _ in clustered_keywords if keyword in kv[1]]),
+    reverse=True))
+
+
+for cluster, keywords in sorted_clustered_keywords_dict.items():
+    # Gets counts for the current cluster's keywords
+    counts = [count for keyword, count, _ in clustered_keywords if keyword in keywords]
+   
+    # Sets the bar color based on the cluster number
+    color = f'C{cluster}'
+   
+    # Plots the bars for the keywords in the current cluster
+    bars = ax.bar(keywords, counts, color=color, label=f'Cluster {cluster + 1}')
+
+
+    # Add the number of rows above the bars
+    for bar, count in zip(bars, counts):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, height, str(count), ha='center', va='bottom', fontsize=10)
+
+
+# Chart labels and title
+ax.set_xlabel('Programming language')
+ax.set_ylabel('Number of times required for a job')
+ax.set_title('Number of times programming language was required for a job in JobTech dataset')
+
+
+# Displays the bar chart
+plt.xticks(rotation=45)
+plt.show()
