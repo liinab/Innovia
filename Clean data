@@ -1,0 +1,23 @@
+import csv
+import re
+
+formatted_data = []
+
+with open('job2022.csv', newline='') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        description = row['description']
+        # Remove the first 8 characters, which should be {'text':
+        description = description[8:]
+        # Replace any occurrences of '\n' with a space
+        description = re.sub(r'[^a-zA-Z0-9 ]*\n+', ' ', description)
+        # Add the cleaned-up description to a new dictionary with just one column
+        formatted_row = {'description': description}
+        formatted_data.append(formatted_row)
+
+# Write the formatted data to a new CSV file
+with open('formatted_data.csv', 'w', newline='') as csvfile:
+    writer = csv.DictWriter(csvfile, fieldnames=['description'])
+    writer.writeheader()
+    for row in formatted_data:
+        writer.writerow(row)
