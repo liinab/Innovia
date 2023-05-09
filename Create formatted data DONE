@@ -1,0 +1,22 @@
+import pandas as pd 
+
+#Load dataset
+df = pd.read_csv('job2022.csv')
+
+#Clean description, label 'text'
+df['Description'] = df['description'].apply(lambda x: eval(x).get('text'))
+
+#Clean headline
+df['Headline'] = df['headline']
+
+#Clean occupation, 'label' 
+df['Occupation'] = df['occupation'].apply(lambda x: eval(x).get('label'))
+
+#Clean occupation_field, label 'label'
+df['Occupation_field'] = df['occupation_field'].apply(lambda x: eval(x).get('label'))
+
+#Clean workplace_address, label 'municipality'
+df['City'] = df['workplace_address'].apply(lambda x: eval(x).get('municipality'))
+
+#Save clean, formatted data to a new file
+df[['Description', 'Headline' ,'Occupation', 'Occupation_field', 'City']].to_csv('formatted_data.csv', index=False)
