@@ -1,0 +1,17 @@
+import pandas as pd
+
+# Read the original dataset from CSV file
+df = pd.read_csv('job2022.csv')
+
+# Extract the desired columns and keys
+df_subset = df[['description', 'headline', 'occupation_field', 'workplace_address']].copy()
+
+df_subset['description'] = df_subset['description'].apply(lambda x: eval(x)['text'])
+df_subset['occupation_field'] = df_subset['occupation_field'].apply(lambda x: eval(x)['label'])
+df_subset['workplace_address'] = df_subset['workplace_address'].apply(lambda x: eval(x)['municipality'])
+
+# Filter the rows where 'occupation_field' is 'Data/IT'
+df_filtered = df_subset[df_subset['occupation_field'] == 'Data/IT']
+
+# Save the filtered DataFrame to a new CSV file
+df_filtered.to_csv('job2022_filtered.csv', index=False)
