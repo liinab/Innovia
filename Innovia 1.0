@@ -1,0 +1,91 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+# import pydeck as pdk
+
+import csv
+
+################## COLUMNS #####################################
+col1, col2 = st.columns(2)
+#För att lägga in innehållet i kolumner, använd: 
+    # with col1:
+        # kod ex; st.tiltle('Här är ett exempel')
+
+################## TITLE PAGE ################################
+
+#Logga
+st.image('logga.innovia.jpeg', width=500)
+
+#Title
+st.title('Innovia')
+
+#Markdown
+st.markdown(' ### Welcome, University of Gothenburg')
+
+################### GRAPHS #######################################
+
+#RUBRIK GRAPH 1 
+st.markdown(" #### This application was created to help you navigate the demand of information security in todays labor market.")
+
+chart_data = pd.DataFrame(np.random.randn(20, 3), columns = ["a", "b", "c"])
+st.bar_chart(chart_data)
+
+#################### DISPLAYING RAW DATA ########################
+
+#RUBRIK
+st.markdown(' #### Display raw data:')
+
+#DATA URLS
+DATA_URL = (
+    'KOMP.csv'
+)
+
+D2022_URL = (
+    'formatted_data.csv'
+)
+
+D2021_URL = (
+    'formatted_data2021.csv'
+)
+
+#KOMPETENS DATA
+@st.cache_data(persist=True)
+def load_data(nrows):
+    komp_data = pd.read_csv('KOMP.csv', nrows = nrows)
+    return komp_data
+
+komp_data = load_data(1000)
+
+original_data = komp_data
+
+#KOMPETENS DATA - SHOW 
+if st.checkbox('Kompetenser Data'):
+    st.subheader('Raw Data')
+    st.write(komp_data)
+
+#JOBTECH DATA 2022 
+@st.cache_data(persist=True)
+def load_data(nrows):
+    jobtechdata_2022 = pd.read_csv('formatted_data.csv', nrows = nrows)
+    return jobtechdata_2022
+
+jobtechdata_2022 = load_data(10000)
+
+#JOBTECH DATA 2022 - SHOW 
+if st.checkbox('Jobtech Data 2022'):
+    st.subheader('Raw Data')
+    st.write(jobtechdata_2022)
+
+#JOBTECH DATA 2021 
+@st.cache_data(persist=True)
+def load_data(nrows):
+    jobtechdata_2021 = pd.read_csv('formatted_data2021.csv', nrows = nrows)
+    return jobtechdata_2021
+
+jobtechdata_2021 = load_data(10000)
+
+#JOBTECH DATA 2021 - SHOW 
+if st.checkbox('Jobtech Data 2021'):
+    st.subheader ('Raw Data')
+    st.write(jobtechdata_2021)
