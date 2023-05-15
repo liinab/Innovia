@@ -1,0 +1,118 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from streamlit_option_menu import option_menu
+# import pydeck as pdk
+
+import csv
+
+################## OPTION MENU ################################
+with st.sidebar:
+    selected = option_menu(
+        menu_title = "Main Menu",
+        options = ["Home", "Job Analysis", "Contact"],
+        icons = ["house", "briefcase", "envelope"],
+        menu_icon = "circle",
+        default_index = 0,
+        styles = {"container":{"background-color": "#fafafa"}, "icon":{"color": "black", "font-size": "25px"}
+        }
+    )
+
+################## HOME PAGE ###################################
+if selected == "Home":
+    st.image('logga.innovia.jpeg', width=500)
+    st.markdown(' ## Welcome, University of Gothenburg')
+    st.markdown(" #### This application was created to help you navigate the demand of information security in todays labor market.")
+
+
+elif selected == "Job Analysis":
+    st.title(f"{selected}")
+    ##### YEAR SELECTION 
+    st.markdown(' ## Which year(s) would you like to select for analysis?')
+    st.checkbox('2019')
+    st.checkbox('2020')
+    st.checkbox('2021')
+    st.checkbox('2022')
+    st.checkbox('2023')
+    st.checkbox('Select all years')
+
+    ##### CITY SELECTION
+    st.markdown(' ## Which city(ies) would you like to select for analysis?')
+    st.checkbox('Göteborg')
+    st.checkbox('Stockholm')
+    st.checkbox('Malmö')
+    st.checkbox('Lund')
+    st.checkbox('Helsingborg')
+    st.checkbox('Uppsala')
+    st.checkbox('Linköping')
+    st.checkbox('Jönköping')
+    st.checkbox('Örebro')
+    st.checkbox('Norrköping')
+    st.checkbox('Select all cities')
+
+
+    st.markdown(' #### Display raw data:')
+    #DATA URLS
+    DATA_URL = (
+      'KOMP.csv'
+    )
+
+    D2022_URL = (
+     'formatted_data.csv'
+    )
+
+    D2021_URL = (
+        'formatted_data2021.csv'
+    )
+
+     #KOMPETENS DATA
+    @st.cache_data(persist=True)
+    def load_data(nrows):
+        komp_data = pd.read_csv('KOMP.csv', nrows = nrows)
+        return komp_data
+
+    komp_data = load_data(1000)
+
+    original_data = komp_data
+
+    #KOMPETENS DATA - SHOW 
+    if st.checkbox('Kompetenser Data'):
+        st.subheader('Raw Data')
+        st.write(komp_data)
+
+    #JOBTECH DATA 2022 
+    @st.cache_data(persist=True)
+    def load_data(nrows):
+        jobtechdata_2022 = pd.read_csv('formatted_data.csv', nrows = nrows)
+        return jobtechdata_2022
+
+    jobtechdata_2022 = load_data(10000)
+
+    #JOBTECH DATA 2022 - SHOW 
+    if st.checkbox('Jobtech Data 2022'):
+        st.subheader('Raw Data')
+        st.write(jobtechdata_2022)
+
+    #JOBTECH DATA 2021 
+    @st.cache_data(persist=True)
+    def load_data(nrows):
+        jobtechdata_2021 = pd.read_csv('formatted_data2021.csv', nrows = nrows)
+        return jobtechdata_2021
+
+    jobtechdata_2021 = load_data(10000)
+
+    #JOBTECH DATA 2021 - SHOW 
+    if st.checkbox('Jobtech Data 2021'):
+        st.subheader ('Raw Data')
+        st.write(jobtechdata_2021)
+
+################# CONTACT PAGE ######################
+elif selected == "Contact":
+    st.title(f"{selected} us")
+    st.markdown(' ## If you have any questions about this application, please let us know.')
+    st.markdown(' #### Amanda Borg: amandaborgg@gmail.com')
+    st.markdown(' #### August Bergstrand: bergstrandaugust@gmail.com')
+    st.markdown(' #### Lina Book: linabook1@gmail.com')
+    st.markdown(' #### Lovisa Fredriksson: lovisa.f.fredriksson@gmail.com')
+    st.markdown(' #### Rebecka Ahlenius: rebecka.ahlenius@hotmail.com')
