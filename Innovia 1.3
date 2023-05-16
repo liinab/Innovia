@@ -1,0 +1,80 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from streamlit_option_menu import option_menu
+# import pydeck as pdk
+
+import csv
+
+################## OPTION MENU ################################
+with st.sidebar:
+    selected = option_menu(
+        menu_title = "Main Menu",
+        options = ["Home", "Job Analysis", "University Analysis", "Contact"],
+        icons = ["house", "briefcase", "mortarboard", "envelope"],
+        menu_icon = "circle",
+        default_index = 0,
+        styles = {"container":{"background-color": "#fafafa"}, "icon":{"color": "black", "font-size": "25px"}
+        }
+    )
+
+################## HOME PAGE ###################################
+if selected == "Home":
+    st.image('logga.innovia.jpeg', width=500)
+    st.markdown(' ## Welcome, University of Gothenburg')
+    st.markdown(" #### This application was created to help you navigate the demand of information security in todays labor market.")
+
+################# JOB ANALYSIS PAGE ############################
+elif selected == "Job Analysis":
+    st.title(f"{selected}")
+    ##### YEAR SELECTION 
+    st.markdown(' ## Which year(s) would you like to select for analysis?')
+    st.checkbox('2019')
+    st.checkbox('2020')
+    st.checkbox('2021')
+    st.checkbox('2022')
+    st.checkbox('2023')
+    st.checkbox('Select all years')
+
+    ##### CITY SELECTION
+    st.markdown(' ## Which city(ies) would you like to select for analysis?')
+    st.checkbox('Göteborg')
+    st.checkbox('Stockholm')
+    st.checkbox('Malmö')
+    st.checkbox('Lund')
+    st.checkbox('Helsingborg')
+    st.checkbox('Uppsala')
+    st.checkbox('Linköping')
+    st.checkbox('Jönköping')
+    st.checkbox('Örebro')
+    st.checkbox('Norrköping')
+    st.checkbox('Select all cities')
+
+################# COMPETENCIES UNIVERSITY ###############
+elif selected == "University Analysis":
+    st.title(f"{selected}")
+    ### DATA VISUALIZATION 
+    df = pd.read_csv('KOMPISS - Blad1.csv') # Läs in kompetenser
+    st.title("What competencies are taught at the different universities?")
+    competencies = df.columns[1:] # Hämta alla kolumner med kompetenserna
+    contact_selected = st.selectbox("Select Competence", competencies) # Välj kompetens
+    filtered_df = df[df[contact_selected]] # Filtera resterande data på vald kompetens
+    universities = filtered_df['Universitet']
+    values = [1] * len(universities)
+    universities_list = filtered_df['Universitet'].tolist() # Skapa lista på universiteten 
+    st.write(f"**Universities offering {contact_selected}:**") # Skriv ut lista på universitet
+    for university in universities_list:
+        st.write(university)
+
+
+################# CONTACT PAGE ######################
+elif selected == "Contact":
+    st.title(f"{selected} us")
+    st.markdown(' ## If you have any questions about this application, please let us know.')
+    st.markdown(' #### Amanda Borg: amandaborgg@gmail.com')
+    st.markdown(' #### August Bergstrand: bergstrandaugust@gmail.com')
+    st.markdown(' #### Lina Book: linabook1@gmail.com')
+    st.markdown(' #### Lovisa Fredriksson: lovisa.f.fredriksson@gmail.com')
+    st.markdown(' #### Rebecka Ahlenius: rebecka.ahlenius@hotmail.com')
