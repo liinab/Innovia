@@ -1,0 +1,206 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from streamlit_option_menu import option_menu
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from joblib import dump
+import csv
+
+################## OPTION MENU ################################
+with st.sidebar:
+    selected = option_menu(
+        menu_title = "Main Menu",
+        options = ["Home", "Job Analysis", "University Analysis", "Contact"],
+        icons = ["house", "briefcase", "mortarboard", "envelope"],
+        menu_icon = "chevron-double-down",
+        default_index = 0,
+        styles = {"container":{"background-color": "#fafafa"}, "icon":{"color": "black", "font-size": "25px"}
+        }
+    )
+
+################## HOME PAGE ###################################
+if selected == "Home":
+    st.image('logga.innovia.jpeg', width=500)
+    st.markdown(' ## Welcome, *University of Gothenburg*')
+    st.markdown(" #### This application was created to help you navigate the demand of IT-and information-security in todays labor market.")
+    st.markdown(' ')
+    st.markdown(' ##### To use the application, go to Job Analysis or University Analysis.')
+
+################# JOB ANALYSIS PAGE ############################
+elif selected == "Job Analysis":
+    st.title(f"{selected}")
+    ##### INFORMATION
+    st.markdown(' ##### This analysis tool creates a visualization showing an overview of jobs requiring skills in IT-and information-security over the years in the top 10 biggest Swedish cities.')
+    st.markdown(' ##### To start the analysis, please select at least one year and one city.')
+    st.markdown(' ')
+    with st.form(key='my_form'):
+        ##### YEAR SELECTION 
+        st.markdown(' ### Which year(s) would you like to select for analysis?')
+        year_options = ['All', 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+        selected_years = st.multiselect('Select Year(s)', options=year_options)
+        ##### CITY SELECTION
+        st.markdown(' ### Which city(ies) would you like to select for analysis?')
+        city_options = ['All', 'Göteborg', 'Stockholm', 'Malmö', 'Lund', 'Helsingborg', 'Uppsala', 'Linköping', 'Jönköping', 'Örebro', 'Norrköping']
+        selected_cities = st.multiselect('Select City(ies)', options=city_options)
+        submit_button = st.form_submit_button(label = 'Submit')
+    ##### IF ALL IS SELECTED 
+    if 'All' in selected_years:
+        selected_years = [year for year in year_options if year != 'All']
+    if 'All' in selected_cities:
+        selected_cities = [city for city in city_options if city != 'All']
+    ##### WARNING TO MAKE THE USER SELECT AT LEAST ONE OPTION
+    if not selected_years or not selected_cities:
+        st.warning('Please select at least one year and one city.')
+        st.stop()
+
+    ##### ALGORITHM
+    progress_bar = st.progress(0)
+
+    with st.spinner('Loading data...'):
+        df_train = pd.read_csv('training_dataset(2016-2023).csv') # TRAIN
+        df_train['description'] = df_train['description'].fillna('')
+        df_full = pd.read_csv('full_dataset(2016-2023).csv') # FULL DATA
+        df_full['description'] = df_full['description'].fillna('')
+    progress_bar.progress(10)
+
+    with st.spinner('Filtering data based on selected cities and years...'):
+        ## FILTER DATA ON SELECTIONS 
+        df_full = df_full[df_full['year'].isin(selected_years) & df_full['workplace_address'].isin(selected_cities)]
+        if df_full.empty:
+            st.warning('No data available for the selected year(s) and city(ies).')
+            st.stop()
+    progress_bar.progress(20)
+
+    with st.spinner('Splitting data into training, validation, and testing sets...'):
+        ## SPLIT DATA INTO TRAIN/TEST/VALIDATION
+        X = df_train['description']
+        y = df_train['it_security']
+        X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+        X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=(0.15/0.7), random_state=42)
+    progress_bar.progress(30)
+
+    with st.spinner('Fitting and transforming data...'):
+        ## INITIALIZE VECTORIZER 
+        tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+        ## FIT AND TRANSFORM
+        X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+        ## TRANSFORM VALIDATION AND TEST DATA
+        X_val_tfidf = tfidf_vectorizer.transform(X_val)
+        X_test_tfidf = tfidf_vectorizer.transform(X_test)
+    progress_bar.progress(40)
+
+    with st.spinner('Training logistic regression model...'):
+        ## LOGISTIC REGRESSION, MAX ITERATIONS 250
+        model = LogisticRegression(max_iter=250)
+        ## TRAIN MODEL WITH TRAINING DATA 
+        model.fit(X_train_tfidf, y_train)
+    progress_bar.progress(50)
+
+    with st.spinner('Making predictions...'):
+        ## MAKE PREDICTIONS ON TRAIN, TEST AND VALIDATION DATA
+        y_train_pred = model.predict(X_train_tfidf)
+        y_val_pred = model.predict(X_val_tfidf)
+        y_test_pred = model.predict(X_test_tfidf)
+    progress_bar.progress(60)
+
+    with st.spinner('Calculating accuracy...'):
+        ## CALCULATE THE ACCURACY ON TRAINING, VALIDATION AND TEST
+        train_accuracy = accuracy_score(y_train, y_train_pred)
+        val_accuracy = accuracy_score(y_val, y_val_pred)
+        test_accuracy = accuracy_score(y_test, y_test_pred)
+    progress_bar.progress(70)
+
+    with st.spinner('Transforming full dataset and making predictions...'):
+        ## TRANSFORM FULL DATASET 
+        X_full = df_full['description']
+        X_full_tfidf = tfidf_vectorizer.transform(X_full)
+        ## MAKE PREDICTIONS ON FULL DATASET
+        y_full_pred = model.predict(X_full_tfidf)
+    progress_bar.progress(80)
+
+    with st.spinner('Saving predictions...'):
+        ## SAVE PREDICTIONS 
+        df_full['it_security_prediction'] = y_full_pred
+    progress_bar.progress(85)
+
+    with st.spinner('Calculating percentage of IT-security jobs...'):
+        ## CALCULATE % OF IT-SECURITY JOBS
+        it_security_jobs_by_year_and_city = df_full.groupby(['year', 'workplace_address'])['it_security_prediction'].mean() * 100
+    progress_bar.progress(90)
+
+    with st.spinner('Plotting line chart...'):
+        ##### LINE CHART 
+        fig = go.Figure()
+        # Add a line for each city
+        for city in selected_cities:
+            city_data = it_security_jobs_by_year_and_city.loc[:, city]
+            fig.add_trace(go.Scatter(x=city_data.index, y=city_data, mode='lines+markers', name=city))
+
+        # Add a line for the summary data
+        it_security_jobs_by_year = df_full.groupby('year')['it_security_prediction'].mean() * 100
+        fig.add_trace(go.Scatter(x=it_security_jobs_by_year.index, y=it_security_jobs_by_year, mode='lines+markers', name='All Cities'))
+
+        fig.update_layout(title='Percentage of IT-security jobs per selected year(s)', 
+                  xaxis=dict(autorange=True), 
+                  yaxis=dict(autorange=True), 
+                  xaxis_title='Year', 
+                  yaxis_title='Percentage (%)') 
+        st.plotly_chart(fig)
+    progress_bar.progress(95)
+
+    with st.spinner('Saving the model, fitted TF-IDF Vectorizer, and the dataset with predictions...'):
+        ## SAVE THE MODEL  
+        dump(model, 'job_classification_model.joblib')
+        ## SAVE FITTED TF-IDF VECTORIZER 
+        dump(tfidf_vectorizer, 'tfidf_vectorizer.joblib')
+        #### SAVE FULL DATASET WITH PREDICTIONS
+        df_full.to_csv('full_dataset_with_predictions.csv', index=False)
+    progress_bar.progress(100)
+
+    # Display the percentages in a table with proper formatting
+    percentage_df = it_security_jobs_by_year_and_city.reset_index()
+    percentage_df.columns = ['Year', 'City', 'Percentage of IT-security jobs']
+    percentage_df['Percentage of IT-security jobs'] = percentage_df['Percentage of IT-security jobs'].map('{:.1f}%'.format)
+    st.markdown(percentage_df.to_markdown(index=False))  # Display without index
+
+    # Display accuracies
+    print('')
+    st.markdown('### Model Performance:')
+    st.markdown(f'Training Accuracy: {train_accuracy*100:.1f}%')
+    st.markdown(f'Validation Accuracy: {val_accuracy*100:.1f}%')
+    st.markdown(f'Test Accuracy: {test_accuracy*100:.1f}%')
+
+    progress_bar.progress(0)
+
+################# COMPETENCIES UNIVERSITY ###############
+elif selected == "University Analysis":
+    st.title(f"{selected}")
+    ### DATA VISUALIZATION 
+    df = pd.read_csv('KOMPISS - Blad1.csv') # Läs in kompetenser
+    st.markdown(' ##### Universities offering Systemvetenskap in Sweden differ a lot from one another.')
+    st.markdown(' ##### This tool will help create an overview of what competencies are taught at the different universities.')
+    competencies = df.columns[1:] # Hämta alla kolumner med kompetenserna
+    contact_selected = st.selectbox("Select Competence", competencies) # Välj kompetens
+    filtered_df = df[df[contact_selected]] # Filtera resterande data på vald kompetens
+    universities = filtered_df['Universitet']
+    values = [1] * len(universities)
+    universities_list = filtered_df['Universitet'].tolist() # Skapa lista på universiteten 
+    st.write(f"**Universities offering {contact_selected}:**") # Skriv ut lista på universitet
+    for university in universities_list:
+        st.write(university)
+
+
+################# CONTACT PAGE ######################
+elif selected == "Contact":
+    st.title(f"{selected} us")
+    st.markdown(' #### If you have any questions about this application, please let us know.')
+    st.markdown(' ##### Amanda Borg: amandaborgg@gmail.com')
+    st.markdown(' ##### August Bergstrand: bergstrandaugust@gmail.com')
+    st.markdown(' ##### Lina Book: linabook1@gmail.com')
+    st.markdown(' ##### Lovisa Fredriksson: lovisa.f.fredriksson@gmail.com')
+    st.markdown(' ##### Rebecka Ahlenius: rebecka.ahlenius@hotmail.com')
